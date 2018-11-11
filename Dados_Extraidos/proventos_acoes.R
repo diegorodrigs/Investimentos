@@ -55,8 +55,8 @@ df_prov <- data.frame("Data"=vec_date)
 
 
 # Criando tabela consolidade
-tab_prov_hist <- NULL
-tab_desd <- NULL
+df_prov <- NULL
+df_desd <- NULL
 
 
 
@@ -103,13 +103,13 @@ for(j in lista_Ac){
       as.data.frame()
     
     
-    tab_desd <- rbind(tab_desd,aux_desd)
+    df_desd <- rbind(df_desd,aux_desd)
     
     # Eliminando as linhas sem data de pagamento
-    tab_desd <- tab_desd[!is.na(tab_desd$Data.com) & tab_desd$Data.com != "",]
+    df_desd <- df_desd[!is.na(df_desd$Data.com) & df_desd$Data.com != "",]
     
     # Deduplicando
-    tab_desd <- tab_desd[!duplicated(tab_desd),]
+    df_desd <- df_desd[!duplicated(df_desd),]
     
     
     
@@ -164,19 +164,19 @@ for(j in lista_Ac){
         mutate(Papel = j)
       
       if(is.na(num_linhas)){
-        tab_prov_hist <- rbind(tab_prov_hist,subset(aux_prov, select = -c(Aprovação)))
+        df_prov <- rbind(df_prov,subset(aux_prov, select = -c(Aprovação)))
       }else{
-        tab_prov_hist <- rbind(tab_prov_hist,subset(aux_prov, subset =  row.names(aux_prov)>2, select = -c(Aprovação,NA.)))
+        df_prov <- rbind(df_prov,subset(aux_prov, subset =  row.names(aux_prov)>2, select = -c(Aprovação,NA.)))
       }
 
     }
     
     
     # Eliminando as linhas sem data de pagamento
-    tab_prov_hist <- tab_prov_hist[!is.na(tab_prov_hist$Pagamento) & tab_prov_hist$Pagamento != "",]
+    df_prov <- df_prov[!is.na(df_prov$Pagamento) & df_prov$Pagamento != "",]
   
     # Deduplicando
-    tab_prov_hist <- tab_prov_hist[!duplicated(tab_prov_hist),]
+    df_prov <- df_prov[!duplicated(df_prov),]
     
     
     # Sleep
@@ -192,37 +192,37 @@ for(j in lista_Ac){
 ##################################
 
 
-##### tab_desd
-tab_desd <- subset(tab_desd, select = -Aprovação)
-names(tab_desd) <- c("Papel","Tipo","DataCom","Fator")
-tab_desd$DataCom <- as.Date(tab_desd$DataCom,"%d/%m/%Y")
+##### df_desd
+df_desd <- subset(df_desd, select = -Aprovação)
+names(df_desd) <- c("Papel","Tipo","DataCom","Fator")
+df_desd$DataCom <- as.Date(df_desd$DataCom,"%d/%m/%Y")
 
-tab_desd$Fator1 <- round(as.numeric(gsub(" .*","",tab_desd$Fator)),0)
-tab_desd$Fator2 <- round(as.numeric(gsub(".* para ","",tab_desd$Fator)),0)
+df_desd$Fator1 <- round(as.numeric(gsub(" .*","",df_desd$Fator)),0)
+df_desd$Fator2 <- round(as.numeric(gsub(".* para ","",df_desd$Fator)),0)
 
-# head(tab_desd)
-# table(tab_desd$Fator)
+# head(df_desd)
+# table(df_desd$Fator)
 
-##### tab_prov_hist
-names(tab_prov_hist) <- c("Tipo","DataCom","Valor","DataPagamento","Papel")
+##### df_prov
+names(df_prov) <- c("Tipo","DataCom","Valor","DataPagamento","Papel")
 
-tab_prov_hist <- tab_prov_hist[tab_prov_hist$Valor!="Nenhuma informação encontrada.",]
+df_prov <- df_prov[df_prov$Valor!="Nenhuma informação encontrada.",]
 
 
-tab_prov_hist$DataCom <- as.Date(tab_prov_hist$DataCom,"%d/%m/%y")
-tab_prov_hist$DataPagamento <- as.Date(tab_prov_hist$DataPagamento,"%d/%m/%y")
+df_prov$DataCom <- as.Date(df_prov$DataCom,"%d/%m/%y")
+df_prov$DataPagamento <- as.Date(df_prov$DataPagamento,"%d/%m/%y")
 
-tab_prov_hist$Valor <- as.numeric(gsub(",","\\.",gsub("R\\$","",tab_prov_hist$Valor)))
-# tab_prov_hist$Valor[is.na(a)]
+df_prov$Valor <- as.numeric(gsub(",","\\.",gsub("R\\$","",df_prov$Valor)))
+# df_prov$Valor[is.na(a)]
 # head(a)
-# head(tab_prov_hist)
+# head(df_prov)
 
 ##################################
 # Salvando a base
 ##################################
 
-save(tab_prov_hist,file="./Dados_Extraidos/proventos.RData")
-save(tab_desd,file="./Dados_Extraidos/desdobramentos.RData")
+save(df_prov,file="./Dados_Extraidos/proventos.RData")
+save(df_desd,file="./Dados_Extraidos/desdobramentos.RData")
 
 
 ##################################
