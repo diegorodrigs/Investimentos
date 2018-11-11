@@ -1,14 +1,13 @@
-# Sites
+# Sites tentatos
 # https://br.advfn.com  : faltam datas de pagamento, como em SAPR11
 # https://www.infomoney.com.br/ciahering-hgtx3/proventos não tem histórico longo, como em HGTX3
 # https://www.bussoladoinvestidor.com.br/guia-empresas/empresa/sapr11/proventos naõ tem proventos de alguns papéis como SAPR11
 # https://meusdividendos.com não tem a data de pagamento dos proventos
 
 
-
-
-
-# source("C:/Users/Youse/Desktop/Projetos/UDF/UDF_list.R")
+##############################################
+# Carregando lista de UDFs e bibliotecas
+##############################################
 source("C:/Users/Diego/Desktop/Data_Science/UDF/UDF_list.R")
 
 UDF_require("reshape2")
@@ -18,12 +17,14 @@ UDF_require("xml2")
 UDF_require("tidyverse")
 UDF_require("plyr")
 
-setwd("C:/Users/Diego/Desktop/Investimento")
+setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
+
+
 
 ##################################
 # Iniciar a conexão
 ##################################
-rD <- rsDriver(port = 4444L, browser = "chrome",)
+rD <- rsDriver(port = 4568L, browser = "chrome")
 remDr <- rD$client 
 
 
@@ -50,12 +51,7 @@ lista_Ac <- c("ITUB3","ITUB4","GRND3","WEGE3",
 # Criando a tabela de cotações
 vec_date <- seq.Date(as.Date("2013-01-01"),as.Date("2018-10-20"),1)
 df_prov <- data.frame("Data"=vec_date)
-# df_prov <- as.data.frame(cbind(data.frame("Data"=vec_date)
-#                 ,
-#                 as.data.frame(matrix( rep(NA,length(lista_Ac)*length(vec_date)),ncol =length(lista_Ac), dimnames = list(seq(length(vec_date)), lista_Ac  )   ))
-#                 ))
 
-# head(df_prov)
 
 
 # Criando tabela consolidade
@@ -64,16 +60,30 @@ tab_desd <- NULL
 
 
 
+
+##### Fazendo login no site da guiaInvest
+# Criando a URL para desdobramentos
+url <- "https://www.guiainvest.com.br/login/default.aspx"
+
+#### Carregando a página
+remDr$navigate(url)
+
+
+
+
+
 for(j in lista_Ac){
   
-    # j <- lista_Ac[1]
+  # j <- "IRBR3"
   
+
+    # Print do papel
+    print(paste("Papel: ",j,", ",which(lista_Ac == j),"/",length(lista_Ac),sep=""))
   
-    # url <- "https://br.advfn.com/bolsa-de-valores/bovespa/itau-unibanco-ITUB3/dividendos"
-    # url <- "https://www.meusdividendos.com/empresa/HGTX"
+    # Criando a URL para desdobramentos
     url <- paste("https://www.meusdividendos.com/empresa/",substr(j, 1, 4),sep="")
     
-    #### Carregando a pÃ¡gina
+    #### Carregando a página
     remDr$navigate(url)
     
     
@@ -84,18 +94,6 @@ for(j in lista_Ac){
     
     #### Clicando no botão
     aba_prov$clickElement()
-    
-    
-    
-    
-    
-    
-    
-    #### Selecionando a tabela de proventos - 2018
-    # tab_prov_2018 <- xml2::read_html(remDr$getPageSource()[[1]]) %>%
-    #   rvest::html_nodes(xpath = "//*[@id='dividendos']/div[1]/div/div/div[2]/table") %>%
-    #   rvest::html_table(fill = TRUE) %>%
-    #   as.data.frame()
     
     
     #### Selecionando a tabela de grupamentos e desdobramentos
@@ -119,12 +117,10 @@ for(j in lista_Ac){
     
     
     
-    
-    # url <- "https://br.advfn.com/bolsa-de-valores/bovespa/itau-unibanco-ITUB3/dividendos"
-    # url <- "https://www.guiainvest.com.br/provento/default.aspx?sigla=hgtx3&proventodinheiropage=1"
+    # Criando mais uma URL
     url <- paste("https://www.guiainvest.com.br/provento/default.aspx?sigla=",j,"&proventodinheiropage=1",sep="")
     
-    #### Carregando a pÃ¡gina
+    #### Carregando a página
     remDr$navigate(url)
     
     # Temos que capturar a quantidade de linhas do histórico antes de capturar a tabela de proventos
@@ -133,24 +129,30 @@ for(j in lista_Ac){
       rvest::html_table(fill = TRUE) %>%
       as.data.frame()
     
+    # Capturando o número de linhas e calculando o número de páginas
     num_linhas <- as.numeric(gsub(".*Registros [[:digit:]]+ - [[:digit:]]+ de ","",aux[1,1]))
-    num_paginas <- ceiling(num_linhas/10)
+    
+    
+    if(is.na(num_linhas)){
+      num_paginas <- 1
+    }else{
+      num_paginas <- ceiling(num_linhas/10)  
+    }
+    
     
 
-    
-    
-    
-    
-    
+    # Loop para extração dos dados
     for(i in seq(num_paginas)){
+      
+      # Print da página
+      print(paste("          Página: ",i,sep=""))
       
       if(i>1){
         
-        # url <- paste("https://www.guiainvest.com.br/provento/default.aspx?sigla=hgtx3&proventodinheiropage=",i,sep="")
-        # url <- "https://www.guiainvest.com.br/provento/default.aspx?sigla=hgtx3&proventodinheiropage=1"
+        # Criadno a URL de proventos
         url <- paste("https://www.guiainvest.com.br/provento/default.aspx?sigla=",j,"&proventodinheiropage=",i,sep="")
         
-        #### Carregando a pÃ¡gina
+        #### Carregando a página
         remDr$navigate(url)
       }
       
@@ -161,9 +163,12 @@ for(j in lista_Ac){
         as.data.frame()  %>%
         mutate(Papel = j)
       
-      tab_prov_hist <- rbind(tab_prov_hist,subset(aux_prov, subset =  row.names(aux_prov)>2, select = -c(Aprovação,NA.)))
-      # subset(tab_prov_hist,select = -c(Aprovação,NA.))
-      
+      if(is.na(num_linhas)){
+        tab_prov_hist <- rbind(tab_prov_hist,subset(aux_prov, select = -c(Aprovação)))
+      }else{
+        tab_prov_hist <- rbind(tab_prov_hist,subset(aux_prov, subset =  row.names(aux_prov)>2, select = -c(Aprovação,NA.)))
+      }
+
     }
     
     
@@ -174,24 +179,57 @@ for(j in lista_Ac){
     tab_prov_hist <- tab_prov_hist[!duplicated(tab_prov_hist),]
     
     
+    # Sleep
+    Sys.sleep(1.5)
+    
+    
 }
 
 
 
+##################################
+# Tratando as bases
+##################################
 
 
+##### tab_desd
+tab_desd <- subset(tab_desd, select = -Aprovação)
+names(tab_desd) <- c("Papel","Tipo","DataCom","Fator")
+tab_desd$DataCom <- as.Date(tab_desd$DataCom,"%d/%m/%Y")
+
+tab_desd$Fator1 <- round(as.numeric(gsub(" .*","",tab_desd$Fator)),0)
+tab_desd$Fator2 <- round(as.numeric(gsub(".* para ","",tab_desd$Fator)),0)
+
+# head(tab_desd)
+# table(tab_desd$Fator)
+
+##### tab_prov_hist
+names(tab_prov_hist) <- c("Tipo","DataCom","Valor","DataPagamento","Papel")
+
+tab_prov_hist <- tab_prov_hist[tab_prov_hist$Valor!="Nenhuma informação encontrada.",]
 
 
+tab_prov_hist$DataCom <- as.Date(tab_prov_hist$DataCom,"%d/%m/%y")
+tab_prov_hist$DataPagamento <- as.Date(tab_prov_hist$DataPagamento,"%d/%m/%y")
+
+tab_prov_hist$Valor <- as.numeric(gsub(",","\\.",gsub("R\\$","",tab_prov_hist$Valor)))
+# tab_prov_hist$Valor[is.na(a)]
+# head(a)
+# head(tab_prov_hist)
 
 ##################################
 # Salvando a base
 ##################################
 
-save(tab_prov_hist,file="proventos.RData")
-save(tab_desd,file="desdobramentos.RData")
+save(tab_prov_hist,file="./Dados_Extraidos/proventos.RData")
+save(tab_desd,file="./Dados_Extraidos/desdobramentos.RData")
 
 
 ##################################
 # Encerrando a conexão
 ##################################
+
+# Parar o cliente
 remDr$close()
+# Parar o servidor
+rD$server$stop()
