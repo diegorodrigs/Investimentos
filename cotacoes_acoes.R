@@ -7,12 +7,12 @@ UDF_require("rvest")
 UDF_require("xml2")
 UDF_require("tidyverse")
 
-setwd("C:/Users/Diego/Desktop/Investimento")
+setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
 
 ##################################
 # Iniciar a conexÃ£o
 ##################################
-rD <- rsDriver(port = 4444L, browser = "chrome",)
+rD <- rsDriver(port = 4568L, browser = "chrome")
 remDr <- rD$client 
 
 
@@ -121,10 +121,14 @@ for(i in seq(length(lista_Ac))){
 # Salvando a base
 ##################################
 
-save(df_cot,file="cotacoes.RData")
+save(df_cot,file="./Dados_Extraidos/cotacoes.RData")
 
 
 ##################################
-# Encerrando a conexÃ£o
+# Encerrando a conexão
 ##################################
+
+# Parar o cliente
 remDr$close()
+# Parar o servidor
+rD$server$stop()
