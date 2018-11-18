@@ -120,7 +120,7 @@ aportes <- function(vec_vl_ap,vec_vl_pr,papel,valorizacao,distrib,aporte_ms,sald
   # Valor disponível para aportar em cada ação
   ###################################################
   
-  if(estr_rei_div=="S2"){
+  if(estr_rei_div %in% c("S2","S3")){
     valor_disp <- aporte_ms + sum(vec_vl_pr) + saldo_res
     vec_vl_pr <- vec_vl_pr*0
   }else if(estr_rei_div=="S1"){
@@ -131,25 +131,30 @@ aportes <- function(vec_vl_ap,vec_vl_pr,papel,valorizacao,distrib,aporte_ms,sald
   }
   
   
-  ###################################################
-  # Ordenando ações para aporte
-  ###################################################  
+  if(estr_rei_div != "S3"){
   
-  score <- pesos["Valorizacao"]*normalizando(-valorizacao) + pesos["Distrib"]*normalizando(- (distrib-(1/TAM)) )
-  names(score) <- papel
-  score <- normalizando(score)
-  
-  # score <- sort(score,decreasing = T)
-  # print(score)
-  
-  
-  ###################################################
-  # Definindo as ações para aporte
-  ###################################################    
-  
-  lim_minimo <- min(sort(score,decreasing = T)[estr_qtd_apo])
-  acoes_aporte <- escalonando(score*1*(score>=lim_minimo))
-  
+      ###################################################
+      # Ordenando ações para aporte
+      ###################################################  
+      
+      score <- pesos["Valorizacao"]*normalizando(-valorizacao) + pesos["Distrib"]*normalizando(- (distrib-(1/TAM)) )
+      names(score) <- papel
+      score <- normalizando(score)
+      
+      # score <- sort(score,decreasing = T)
+      # print(score)
+      
+      
+      ###################################################
+      # Definindo as ações para aporte
+      ###################################################    
+      
+      lim_minimo <- min(sort(score,decreasing = T)[estr_qtd_apo])
+      acoes_aporte <- escalonando(score*1*(score>=lim_minimo))
+      
+  }else{
+      acoes_aporte <- escalonando(rep(1,TAM))
+  }
   
   ###################################################
   # Definindo vetor de aportes

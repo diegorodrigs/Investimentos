@@ -173,17 +173,21 @@ table(df_cot3$DiaUtil,useNA = "ifany")
 
 ##### Parâmetros
 qtde_papeis <- 5
+TAM <- qtde_papeis
 aporte_inicial <- 10000
 aporte_mensal <- 2000
 num_carteiras <- 200
 
-##### Pesos para decidir aporte
-vec_pesos = c("Valorizacao"=0.5,"Distrib"=0.5)
+
 
 
 ##### Estratégias
     # Reinveste dividendos?
-    estr_rei_div <- "S2" # "N1": Não; "S1": Sim, no papel que a originou; "S2": Sim, em qualquer papel
+        # "N1": Não; 
+        # "S1": Sim, no papel que a originou + Usa pesos para score
+        # "S2": Sim, em qualquer papel + Usa pesos para score
+        # "S3": Sim, em qualquer papel + Aporta igualmente em todas as ações
+    estr_rei_div <- "S3" 
     # Quantidade de ações aportadas por mês
     estr_qtd_apo <- 1
 
@@ -209,13 +213,15 @@ for(h in seq(length(vec_seeds))){
 
 # row.names(df_carteiras) <- seq(nrow(df_carteiras))
 # df_carteiras <- as.data.frame(df_carteiras,row.names = F)
-TAM <- qtde_papeis
+
 # df_carteiras <- UDF_var_factor_to_char(df_carteiras)
 
 df_carteiras$Valor <- 0
 df_carteiras$Custo <- 0
 df_carteiras$Valorizacao <- 0
+df_carteiras$Pesos <- ""
 
+# head(df_carteiras)
 
 ###########################################################################################################################
 ###########################################################################################################################
@@ -223,87 +229,147 @@ df_carteiras$Valorizacao <- 0
 ###########################################################################################################################
 ###########################################################################################################################
 
+df_carteiras_total <- NULL
+df_sim_total <- NULL
 
-for(t in seq(nrow(df_carteiras))){
-  
-  print(paste("t = ",t,sep=""))
 
-  # t <- 9
-  
-  ################################
-  # Preparando as bases
-  ################################
-  
-  # Definindo os papeis presentes na carteira da iteração
-  papeis_carteira <- as.matrix(df_carteiras[t,seq(TAM)])
-  
-  df_cot4 <- df_cot3[df_cot3$DiaUtil==dia_util,c("Data",papeis_carteira)]
-  df_prov2 <- df_prov[df_prov$Papel %in% papeis_carteira,]
-  df_desd2 <- df_desd[df_desd$Papel %in% papeis_carteira,]
+if(estr_rei_div != "S3"){
+  vec_valor_peso <- seq(0,1,0.1)
+}else{
+  vec_valor_peso <- 1
+}
 
-  # head(df_cot4)
-  # head(df_prov2)  
-  # head(df_desd2)  
+for(p in vec_valor_peso){
   
-  # UDF_var_domain(df_cot4)
-  # sapply()
+  ##### Pesos para decidir aporte
+  vec_pesos = c("Valorizacao"= p,"Distrib"= 1-p)
   
+    for(t in seq(nrow(df_carteiras))){
+      
+      print(paste("p = ",p,"; t = ",t,sep=""))
+    
+      # t <- 9
+      
+      ################################
+      # Preparando as bases
+      ################################
+      
+      # Definindo os papeis presentes na carteira da iteração
+      papeis_carteira <- as.matrix(df_carteiras[t,seq(TAM)])
+      
+      df_cot4 <- df_cot3[df_cot3$DiaUtil==dia_util,c("Data",papeis_carteira)]
+      df_prov2 <- df_prov[df_prov$Papel %in% papeis_carteira,]
+      df_desd2 <- df_desd[df_desd$Papel %in% papeis_carteira,]
+    
+      # head(df_cot4)
+      # head(df_prov2)  
+      # head(df_desd2)  
+      
+      # UDF_var_domain(df_cot4)
+      # sapply()
+      
+      
+      # Criando a base para simulação
+      df_sim <- df_cot4
+      row.names(df_sim) <- seq(nrow(df_sim))
+      for(colu in seq(TAM)){
+        x <- data.frame(rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)))
+        names(x) <- c(paste("Custo",papeis_carteira[colu],sep="_"),paste("Qtde",papeis_carteira[colu],sep="_"),paste("PM",papeis_carteira[colu],sep="_"),
+                      paste("ValorMercado",papeis_carteira[colu],sep="_"),paste("Valorizacao",papeis_carteira[colu],sep="_"),paste("Concentracao",papeis_carteira[colu],sep="_"),
+                      paste("Provent",papeis_carteira[colu],sep="_"))
+        df_sim <- cbind(df_sim,x)  
+      }
+      
+      df_sim$Montante_Prove <- 0
+      df_sim$Saldo_Restante <- 0
+      df_sim$Valor_Carteira <- 0
+      df_sim$Custo_Carteira <- 0
+      
+      # head(df_sim)
+      
+      
+      # Gerando o aporte inicial por ação
+      apo_ini_por_ppl <- aporte_inicial/TAM
+      
+      
+      
+      ##############################################
+      # Preenchendo os dados do primeiro mês
+      ##############################################
+      
+      df_sim <- primeiro_aporte(df_sim,apo_ini_por_ppl,papeis_carteira)
+      # (df,apo_por_ppl,papel)
+      # head(df_sim)
+      
+      
+      ##############################################
+      # Preenchendo os dados dos meses seguintes
+      ##############################################
+      
+      df_sim <- demais_aportes(df_sim,papeis_carteira,aporte_mensal,vec_pesos)
+      
+    
+      ##################################################
+      # Preenchendo os dados da tabela com carteiras
+      ##################################################
+      
+      df_carteiras$Valor[t] <- df_sim$Valor_Carteira[nrow(df_sim)]
+      df_carteiras$Custo[t] <- df_sim$Custo_Carteira[nrow(df_sim)]
+      df_carteiras$Valorizacao[t] <- df_sim$Valorizacao_Carteira[nrow(df_sim)]
+      df_carteiras$Pesos[t] <- paste(names(vec_pesos),vec_pesos,sep=" = ",collapse = ", ")  
+      
+    }
   
-  # Criando a base para simulação
-  df_sim <- df_cot4
-  row.names(df_sim) <- seq(nrow(df_sim))
-  for(colu in seq(TAM)){
-    x <- data.frame(rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)),rep(0,nrow(df_cot4)))
-    names(x) <- c(paste("Custo",papeis_carteira[colu],sep="_"),paste("Qtde",papeis_carteira[colu],sep="_"),paste("PM",papeis_carteira[colu],sep="_"),
-                  paste("ValorMercado",papeis_carteira[colu],sep="_"),paste("Valorizacao",papeis_carteira[colu],sep="_"),paste("Concentracao",papeis_carteira[colu],sep="_"),
-                  paste("Provent",papeis_carteira[colu],sep="_"))
-    df_sim <- cbind(df_sim,x)  
-  }
-  
-  df_sim$Montante_Prove <- 0
-  df_sim$Saldo_Restante <- 0
-  df_sim$Valor_Carteira <- 0
-  df_sim$Custo_Carteira <- 0
-  
-  # head(df_sim)
-  
-  
-  # Gerando o aporte inicial por ação
-  apo_ini_por_ppl <- aporte_inicial/TAM
-  
-  
-  
-  ##############################################
-  # Preenchendo os dados do primeiro mês
-  ##############################################
-  
-  df_sim <- primeiro_aporte(df_sim,apo_ini_por_ppl,papeis_carteira)
-  # (df,apo_por_ppl,papel)
-  # head(df_sim)
-  
-  
-  ##############################################
-  # Preenchendo os dados dos meses seguintes
-  ##############################################
-  
-  df_sim <- demais_aportes(df_sim,papeis_carteira,aporte_mensal,vec_pesos)
-  
-
-  ##################################################
-  # Preenchendo os dados da tabela com carteiras
-  ##################################################
-  
-  df_carteiras$Valor[t] <- df_sim$Valor_Carteira[nrow(df_sim)]
-  df_carteiras$Custo[t] <- df_sim$Custo_Carteira[nrow(df_sim)]
-  df_carteiras$Valorizacao[t] <- df_sim$Valorizacao_Carteira[nrow(df_sim)]
-  
+  df_carteiras_total <- rbind(df_carteiras_total,df_carteiras)
+  df_sim_total <- rbind(df_sim_total,df_sim)
   
 }
 
-# tail(df_sim)
-head(df_carteiras)
 
-boxplot(df_carteiras$Valorizacao)
+##############################################
+# Salvando a base de saída
+##############################################
+
+# # Reinveste dividendos?
+# estr_rei_div <- "S2" # "N1": Não; "S1": Sim, no papel que a originou; "S2": Sim, em qualquer papel
+# # Quantidade de ações aportadas por mês
+# estr_qtd_apo <- 1
+save(df_carteiras_total,df_sim_total,file=paste("./Analise_Aportes/Output/ediv_",estr_rei_div,"_eqtd_",estr_qtd_apo,".RData",sep=""))
+
+
+
+##############################################
+# Fazendo uma análise rápida
+##############################################
+boxplot(df_carteiras_total$Valorizacao ~ df_carteiras_total$Pesos,
+        main = "Boxplot da Valorização por cenário de pesos")
+
+
+as.data.frame(do.call(rbind,
+                      tapply(df_carteiras_total$Valorizacao,df_carteiras_total$Pesos, 
+                                   function(x){c("Média"=mean(x),"Mediana"=median(x))}
+                             )
+                      )
+              )
+
+hist(df_carteiras_total$Valorizacao)
+range(df_carteiras_total$Valorizacao)
+df_carteiras_total[c(which.min(df_carteiras_total$Valorizacao),which.max(df_carteiras_total$Valorizacao)),]
+
+
+# head(df_carteiras_total)
+# tail(df_carteiras_total)
+# df_carteiras_total
+# df_sim_total
+# 
+# vec_pesos
+# names(vec_pesos)
+# 
+# 
+# # tail(df_sim)
+# head(df_carteiras)
+# 
+# boxplot(df_carteiras$Valorizacao)
 
 
 # sum(df_sim$Montante_Prove)
