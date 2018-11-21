@@ -40,13 +40,29 @@ source("./Analise_Aportes/funcoes.R")
 ######################################################################################################################################
 ######################################################################################################################################
 
+#### Janela de tempos
+ini_dt <- as.Date("2008-01-01")
+fim_dt <- as.Date("2017-12-31")
+
+
 #### Filtrando pelo tempo
-# Vamos trabalhar apenas com dados entre 01/01/2013 até 31/12/2017: 5 anos
-df_cot <- df_cot[df_cot$Data >= "2013-01-01" & df_cot$Data <= "2017-12-31",]
-df_desd <- df_desd[df_desd$DataCom >= "2013-01-01" & df_desd$DataCom <= "2017-12-31",]
-df_prov <- df_prov[df_prov$DataCom >= "2013-01-01" & df_prov$DataCom <= "2017-12-31",] # Usamos o DataCom no filtro ao invés do DataPagamento pq 
+# Vamos trabalhar apenas com dados entre 01/01/2008 até 31/12/2017: 10 anos
+df_cot <- df_cot[df_cot$Data >= ini_dt & df_cot$Data <= fim_dt,]
+df_desd <- df_desd[df_desd$DataCom >= ini_dt & df_desd$DataCom <= fim_dt,]
+df_prov <- df_prov[df_prov$DataCom >= ini_dt & df_prov$DataCom <= fim_dt,] # Usamos o DataCom no filtro ao invés do DataPagamento pq 
                                                                                        # se o DataCom for antes da data limite inferior, o cliente
                                                                                        # ainda não teria ações então não poderia receber os dividendos.
+
+
+##### Removendo as datas duplicadas
+df_cot <- df_cot %>% dplyr::group_by(Data) %>% dplyr::mutate(DiaCount = row_number()) %>% as.data.frame()
+df_cot <- df_cot[df_cot$DiaCount==1,setdiff(names(df_cot),"DiaCount")]
+
+
+# df_cot[df_cot$Data>="2009-04-20" & df_cot$Data<="2009-04-23",]
+# sum(duplicated(df_cot))
+# sum(duplicated(df_cot$Data))
+# df_cot <- df_cot[!duplicated(df_cot),]
 
 
 # Removendo dias sem pregão no início da janela de tempo
@@ -56,7 +72,7 @@ df_cot <- df_cot[per_ac_dt>=0.2,]
 # head(df_cot)
 
 
-# Removendo as colunas sem operação em janeiro de 2013
+# Removendo as colunas sem operação em janeiro do primeiro ano da janela
 prench_col <- sapply(df_cot[1:5,],function(x){any(!is.na(x))})
 df_cot <- df_cot[prench_col]
 # sum(prench_col>0.7)/length(prench_col)
@@ -104,20 +120,26 @@ df_cot2 <- as.data.frame(sapply(df_cot2,function(x){
   }
 }))
 
+
 df_cot2$Data <- as.Date(df_cot2$Data,origin="1970-01-01")
-head(df_cot2)
-UDF_var_domain(df_cot2)
+# head(df_cot2)
+# UDF_var_domain(df_cot2)
 
 
 
 # Capturando as variáveis que ainda tem missings
 var_miss <- UDF_var_fill(df_cot2)
-var_miss <- names(var_miss[var_miss<1])
+var_miss <- names(var_miss[var_miss<0.75])
 
-df_cot3 <- df_cot2
+df_cot3 <- df_cot2[setdiff(names(df_cot2),var_miss)]
 # UDF_var_domain(df_cot2)
 # df_cot3[seq(2,ncol(df_cot3))] <- sapply(df_cot3[seq(2,ncol(df_cot3))],function(x){as.numeric(as.character(head(x)))})
 # head(df_cot3[2:6])
+
+# Capturando novamente as variáveis que ainda tem missings
+var_miss <- UDF_var_fill(df_cot3)
+var_miss <- names(var_miss[var_miss<1])
+
 
 # Preenchendo com a última cotação não-missing
 for(var_m in var_miss){
@@ -145,15 +167,16 @@ for(var_m in var_miss){
 ##### Dia útil do mês
 df_cot3$Data <- as.Date(df_cot3$Data)
 df_cot3$AnoMes <- UDF_var_month(df_cot3$Data,form = "%Y-%m")
+# head(df_cot3)
 
-
-df_cot3 <- df_cot3 %>% group_by(AnoMes) %>% mutate(DiaUtil = row_number()) %>% as.data.frame()
-
+# df_cot3 <- df_cot3 %>% group_by(AnoMes) %>% mutate(DiaUtil = row_number()) %>% as.data.frame()
+df_cot3 <- df_cot3 %>% dplyr::group_by(AnoMes) %>% dplyr::mutate(DiaUtil = row_number()) %>% as.data.frame()
+# head(df_cot3[c("Data","AnoMes","DiaUtil")],80)
 # head(df_cot3[c("Data","AnoMes","DiaUtil")],30)
 
 # Histograma dos dias úteis
 table(df_cot3$DiaUtil,useNA = "ifany")
-
+hist(df_cot3$DiaUtil,breaks = seq(min(df_cot3$DiaUtil),max(df_cot3$DiaUtil),1),right = F)
 
 
 
@@ -171,9 +194,9 @@ table(df_cot3$DiaUtil,useNA = "ifany")
 # Definições
 ################################
 
+
 ##### Parâmetros
-qtde_papeis <- 5
-TAM <- qtde_papeis
+TAM <- 5 # quantidade de papeis na carteira
 aporte_inicial <- 10000
 aporte_mensal <- 2000
 num_carteiras <- 200
@@ -187,9 +210,9 @@ num_carteiras <- 200
         # "S1": Sim, no papel que a originou + Usa pesos para score
         # "S2": Sim, em qualquer papel + Usa pesos para score
         # "S3": Sim, em qualquer papel + Aporta igualmente em todas as ações
-    estr_rei_div <- "S3" 
+    estr_rei_div <- "S2" 
     # Quantidade de ações aportadas por mês
-    estr_qtd_apo <- 1
+    estr_qtd_apo <- 2
 
     
 ##### Definindo o dia de aporte e criando as carteiras aleatórias
@@ -202,14 +225,16 @@ vec_seeds <- sample(seq(1000),num_carteiras)
 
 df_carteiras <- data.frame(    matrix(rep(0,length(vec_seeds)*TAM),ncol = TAM,byrow = T)      )
 names(df_carteiras) <- paste("Papel",seq(TAM),sep="")
-head(df_carteiras)
+# head(df_carteiras)
 
 for(h in seq(length(vec_seeds))){
   # Definindo a seed
   set.seed(vec_seeds[h])
-  papeis_carteira <- sample(names(df_cot3[2:(ncol(df_cot3)-2)]),qtde_papeis) # "RADL3" "SBSP3" "SANB3" "PSSA3" "ITSA3"
+  papeis_carteira <- sample(names(df_cot3[2:(ncol(df_cot3)-2)]),TAM) # "RADL3" "SBSP3" "SANB3" "PSSA3" "ITSA3"
   df_carteiras[h,] <- papeis_carteira
 }
+
+# head(df_carteiras)
 
 # row.names(df_carteiras) <- seq(nrow(df_carteiras))
 # df_carteiras <- as.data.frame(df_carteiras,row.names = F)
@@ -233,6 +258,7 @@ df_carteiras_total <- NULL
 df_sim_total <- NULL
 
 
+##### Definindo o vetor de pesos de acordo com a estratégia selecionada
 if(estr_rei_div != "S3"){
   vec_valor_peso <- seq(0,1,0.1)
 }else{
@@ -248,7 +274,7 @@ for(p in vec_valor_peso){
       
       print(paste("p = ",p,"; t = ",t,sep=""))
     
-      # t <- 9
+      # t <- 1
       
       ################################
       # Preparando as bases
@@ -307,8 +333,13 @@ for(p in vec_valor_peso){
       ##############################################
       
       df_sim <- demais_aportes(df_sim,papeis_carteira,aporte_mensal,vec_pesos)
-      
-    
+      # head(df_sim)
+      # tail(df_sim)
+      # 
+      # df_sim[nrow(df_sim),grep("Concen",names(df_sim),value=T)]
+      # df_sim[nrow(df_sim),grep("ValorMercado",names(df_sim),value=T)]
+
+          
       ##################################################
       # Preenchendo os dados da tabela com carteiras
       ##################################################
@@ -317,6 +348,7 @@ for(p in vec_valor_peso){
       df_carteiras$Custo[t] <- df_sim$Custo_Carteira[nrow(df_sim)]
       df_carteiras$Valorizacao[t] <- df_sim$Valorizacao_Carteira[nrow(df_sim)]
       df_carteiras$Pesos[t] <- paste(names(vec_pesos),vec_pesos,sep=" = ",collapse = ", ")  
+      head(df_carteiras)
       
     }
   
@@ -334,6 +366,8 @@ for(p in vec_valor_peso){
 # estr_rei_div <- "S2" # "N1": Não; "S1": Sim, no papel que a originou; "S2": Sim, em qualquer papel
 # # Quantidade de ações aportadas por mês
 # estr_qtd_apo <- 1
+
+# paste("./Analise_Aportes/Output/ediv_",estr_rei_div,"_eqtd_",estr_qtd_apo,".RData",sep="")
 save(df_carteiras_total,df_sim_total,file=paste("./Analise_Aportes/Output/ediv_",estr_rei_div,"_eqtd_",estr_qtd_apo,".RData",sep=""))
 
 
@@ -347,10 +381,13 @@ boxplot(df_carteiras_total$Valorizacao ~ df_carteiras_total$Pesos,
 
 as.data.frame(do.call(rbind,
                       tapply(df_carteiras_total$Valorizacao,df_carteiras_total$Pesos, 
-                                   function(x){c("Média"=mean(x),"Mediana"=median(x))}
+                                   function(x){c("Média"=mean(x),"Mediana"=median(x),"Max"=max(x),"Min"=min(x))}
                              )
                       )
               )
+
+# Média   Mediana
+# Valorizacao = 1, Distrib = 0 0.8256787 0.8262089
 
 hist(df_carteiras_total$Valorizacao)
 range(df_carteiras_total$Valorizacao)

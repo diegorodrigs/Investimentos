@@ -8,7 +8,8 @@
 ##############################################
 # Carregando lista de UDFs e bibliotecas
 ##############################################
-source("C:/Users/Diego/Desktop/Data_Science/UDF/UDF_list.R")
+source("C:/Users/Youse/Desktop/Projetos/UDF/UDF_list.R")
+# source("C:/Users/Diego/Desktop/Data_Science/UDF/UDF_list.R")
 
 UDF_require("reshape2")
 UDF_require("RSelenium")
@@ -17,7 +18,9 @@ UDF_require("xml2")
 UDF_require("tidyverse")
 UDF_require("plyr")
 
-setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
+# setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
+setwd("C:/Users/Youse/Desktop/Outros/Investimentos/Investimentos")
+
 
 
 
@@ -26,7 +29,6 @@ setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
 ##################################
 rD <- rsDriver(port = 4568L, browser = "chrome")
 remDr <- rD$client 
-
 
 #### Lista de ações
 lista_Ac <- c("ITUB3","ITUB4","GRND3","WEGE3",
@@ -45,11 +47,24 @@ lista_Ac <- c("ITUB3","ITUB4","GRND3","WEGE3",
               "CAML3","BIDI4","EQTL3","ALUP3",
               "ALUP4","ALUP11","VIVT3","VIVT4",
               "SBSP3","UNIP3","UNIP5","UNIP6",
-              "VALE3")
+              "VALE3",
+              "CRFB3","SULA4","SULA11",
+              "SEER3","SNSL3","NATU3","MRVE3",
+              "CSMG3","GNDI3","TIET3","TIET4",
+              "TIET11","RENT3","SMLS3","BRSR3",
+              "BRSR6","CCRO3","CGAS3","CGAS5",
+              "VULC3","FESA3","FESA4","SLCE3",
+              "TOTS3","LEVE3","MOVI3","GUAR3",
+              "GUAR4","TUPY3","CSAN3","LCAM3",
+              "ALPA3","ALPA4","MGLU3","PTBL3",
+              "POMO3","POMO4","SMTO3","PTNT4")
+
 
 
 # Criando a tabela de cotações
-vec_date <- seq.Date(as.Date("2013-01-01"),as.Date("2018-10-20"),1)
+ini_dt <- as.Date("2008-01-01")
+fim_dt <- as.Date("2018-10-20")
+vec_date <- seq.Date(ini_dt,fim_dt,1)
 df_prov <- data.frame("Data"=vec_date)
 
 

@@ -1,5 +1,5 @@
-# source("C:/Users/Youse/Desktop/Projetos/UDF/UDF_list.R")
-source("C:/Users/Diego/Desktop/Data_Science/UDF/UDF_list.R")
+source("C:/Users/Youse/Desktop/Projetos/UDF/UDF_list.R")
+# source("C:/Users/Diego/Desktop/Data_Science/UDF/UDF_list.R")
 
 UDF_require("reshape2")
 UDF_require("RSelenium")
@@ -7,10 +7,11 @@ UDF_require("rvest")
 UDF_require("xml2")
 UDF_require("tidyverse")
 
-setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
+# setwd("C:/Users/Diego/Desktop/Data_Science/Investimentos")
+setwd("C:/Users/Youse/Desktop/Outros/Investimentos/Investimentos")
 
 ##################################
-# Iniciar a conexÃ£o
+# Iniciar a conexão
 ##################################
 rD <- rsDriver(port = 4568L, browser = "chrome")
 remDr <- rD$client 
@@ -33,11 +34,23 @@ lista_Ac <- c("ITUB3","ITUB4","GRND3","WEGE3",
               "CAML3","BIDI4","EQTL3","ALUP3",
               "ALUP4","ALUP11","VIVT3","VIVT4",
               "SBSP3","UNIP3","UNIP5","UNIP6",
-              "VALE3")
+              "VALE3",
+              "CRFB3","SULA4","SULA11",
+              "SEER3","SNSL3","NATU3","MRVE3",
+              "CSMG3","GNDI3","TIET3","TIET4",
+              "TIET11","RENT3","SMLS3","BRSR3",
+              "BRSR6","CCRO3","CGAS3","CGAS5",
+              "VULC3","FESA3","FESA4","SLCE3",
+              "TOTS3","LEVE3","MOVI3","GUAR3",
+              "GUAR4","TUPY3","CSAN3","LCAM3",
+              "ALPA3","ALPA4","MGLU3","PTBL3",
+              "POMO3","POMO4","SMTO3","PTNT4")
 
 
 # Criando a tabela de cotações
-vec_date <- seq.Date(as.Date("2013-01-01"),as.Date("2018-10-20"),1)
+ini_dt <- as.Date("2008-01-01")
+fim_dt <- as.Date("2018-10-20")
+vec_date <- seq.Date(ini_dt,fim_dt,1)
 df_cot <- data.frame("Data"=vec_date)
 # df_cot <- as.data.frame(cbind(data.frame("Data"=vec_date)
 #                 ,
@@ -53,7 +66,10 @@ for(i in seq(length(lista_Ac))){
     
     # Definindo a URL para o robÃ´
     # url <- "http://cotacoes.economia.uol.com.br/acao/cotacoes-historicas.html?codigo=hgtx3.SA&beginDay=1&beginMonth=1&beginYear=2013&endDay=30&endMonth=10&endYear=2018&page=1&size=2000"
-    url <- paste("http://cotacoes.economia.uol.com.br/acao/cotacoes-historicas.html?codigo=",lista_Ac[i],".SA&beginDay=1&beginMonth=1&beginYear=2013&endDay=30&endMonth=10&endYear=2018&page=1&size=2000",sep="")
+    # url <- paste("http://cotacoes.economia.uol.com.br/acao/cotacoes-historicas.html?codigo=",lista_Ac[i],".SA&beginDay=1&beginMonth=1&beginYear=2013&endDay=30&endMonth=10&endYear=2018&page=1&size=2000",sep="")
+    url <- paste("http://cotacoes.economia.uol.com.br/acao/cotacoes-historicas.html?codigo=",lista_Ac[i],
+                 ".SA&beginDay=",as.numeric(format(ini_dt,"%d")),"&beginMonth=",as.numeric(format(ini_dt,"%m")),"&beginYear=",as.numeric(format(ini_dt,"%Y")),
+                 "&endDay=",as.numeric(format(fim_dt,"%d")),"&endMonth=",as.numeric(format(fim_dt,"%m")),"&endYear=",as.numeric(format(fim_dt,"%Y")),"&page=1&size=",round(as.numeric(fim_dt-ini_dt)*1.2,0),sep="")
     
     
     ##################################

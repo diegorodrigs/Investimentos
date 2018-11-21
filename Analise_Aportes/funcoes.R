@@ -73,31 +73,52 @@ desdobramentos <- function(vec_pr_qt,papel,dt,prev_dt){
 # Verificando se houve pagamento de dividendos neste mês
 ########################################################### 
 
+
+# papel = papeis_carteira
+# dt = "2008-02-07"
+# prev_dt = "2008-01-04"
+# df <- df_sim
+# # df_sim$Data[seq(10)]
+
 proventos <- function(df,vec_vl_pr,papel,dt,prev_dt){
   
+  # options(warn=2)
+  
   # pg_prov <- df_prov2[df_prov2$Papel %in% papeis_carteira,]
-  pg_prov <- df_prov2[df_prov2$DataPagamento <= dt & df_prov2$DataPagamento > prev_dt,]
+  pg_prov <- df_prov2[df_prov2$DataPagamento <= dt & df_prov2$DataPagamento > prev_dt & df_prov2$DataCom >= min(df$Data),]
   
   if(nrow(pg_prov)>0){
     
     for(j in seq(nrow(pg_prov))){
       
+      # print(paste("j = ",j,sep=""))
+      # print(pg_prov)
+      
       # Definindo o papel
       colu <- which(papel == pg_prov$Papel[j])
       # Encontrando a data mais próxima da data-com
       inde <- max(which(df$Data <= pg_prov$DataCom[j]))
+      
+      if(is.na(inde)){
+        print(paste("Papel = ",papel,", Dt = ",dt,", DtPrev = ",prev_dt,sep=''))
+      }            
+      
+      
       # Calculando a quantidade de papéis na data-com
       pg_prov$Qtde_Ppl[j] <- df[inde,paste("Qtde",papeis_carteira[colu],sep="_")]       
       # Calculando o montante de provento a ser recebido
       vec_vl_pr[colu] <- round(pg_prov$Qtde_Ppl[j]*pg_prov$Valor[j],2)
       
+      
+      
     }
   }
+  
+  # options(warn=0)
   
   return(vec_vl_pr)
   
 }
-
 
 
 ###########################################################
